@@ -29,8 +29,8 @@ const secondsToTime = (seconds) => {
 // --- COMPONENTE PRINCIPAL ---
 function App() {
   // Estados de Interface e Dados
-  const [tema, setTema] = useState('dark'); // 'dark' ou 'light'
-  const [view, setView] = useState('home'); // 'home', 'search', 'library', 'playlist'
+  const [tema, setTema] = useState('dark');
+  const [view, setView] = useState('home');
   const [playlists, setPlaylists] = useState([
     { id: 100, nome: "Minhas Favoritas", musicas: [] }
   ]);
@@ -51,7 +51,8 @@ function App() {
         setProgresso((prev) => {
           const total = timeToSeconds(musicaAtual.duracao);
           if (prev >= total) {
-            setTocando(false);
+            // Se a música terminar, pula para a próxima
+            pularFaixa(1);
             return 0;
           }
           return prev + 1;
@@ -59,7 +60,36 @@ function App() {
       }, 1000);
     }
     return () => clearInterval(intervalo);
-  }, [tocando, musicaAtual]);
+  }, [tocando, musicaAtual, playlists, playlistAtiva]);
+
+
+  // --- LÓGICA DE NAVEGAÇÃO ENTRE MÚSICAS ---
+  const pularFaixa = (direcao) => { // direcao: 1 para próxima, -1 para anterior
+    // Determina qual lista está sendo tocada (playlist ativa ou lista total)
+    let listaAtual;
+    if (view === 'playlist' && playlistAtiva) {
+        listaAtual = playlists.find(p => p.id === playlistAtiva)?.musicas || MUSICAS_INICIAIS;
+    } else {
+        listaAtual = MUSICAS_INICIAIS;
+    }
+    
+    if (listaAtual.length === 0) return;
+
+    const currentIndex = listaAtual.findIndex(m => m.id === musicaAtual?.id);
+    let nextIndex = currentIndex + direcao;
+
+    if (nextIndex >= listaAtual.length) {
+      nextIndex = 0; // Volta para o início
+    } else if (nextIndex < 0) {
+      nextIndex = listaAtual.length - 1; // Volta para o final
+    }
+
+    setMusicaAtual(listaAtual[nextIndex]);
+    setTocando(true);
+    setProgresso(0);
+  };
+  // ---------------------------------------------
+
 
   // Ações
   const alternarTema = () => setTema(tema === 'dark' ? 'light' : 'dark');
@@ -69,21 +99,31 @@ function App() {
     if (nome) {
       const nova = { id: Date.now(), nome, musicas: [] };
       setPlaylists([...playlists, nova]);
-      setView('library'); // Leva o usuário para a biblioteca
+      setView('library');
     }
+  };
+
+  const removerPlaylist = (id) => {
+      const confirmacao = window.confirm("Tem certeza que deseja remover esta playlist?");
+      if (confirmacao) {
+          setPlaylists(playlists.filter(pl => pl.id !== id));
+          if (playlistAtiva === id) {
+              setPlaylistAtiva(null);
+              setView('library');
+          }
+      }
   };
 
   const adicionarAPlaylist = (musica, playlistId) => {
     const novasPlaylists = playlists.map(pl => {
       if (pl.id === playlistId) {
-        // Evita duplicatas
         if (pl.musicas.find(m => m.id === musica.id)) return pl;
         return { ...pl, musicas: [...pl.musicas, musica] };
       }
       return pl;
     });
     setPlaylists(novasPlaylists);
-    alert(`Música adicionada à playlist!`);
+    alert(`"${musica.titulo}" adicionada!`);
   };
 
   const tocarMusica = (musica) => {
@@ -98,6 +138,8 @@ function App() {
 
   // Renderização de Conteúdo Central
   const renderConteudo = () => {
+    const listaParaBusca = view === 'home' || view === 'search' ? MUSICAS_INICIAIS : playlists.find(p => p.id === playlistAtiva)?.musicas || [];
+    
     if (view === 'home') {
       return (
         <ListaMusicas 
@@ -112,7 +154,7 @@ function App() {
       );
     }
     if (view === 'search') {
-      const filtradas = MUSICAS_INICIAIS.filter(m => 
+      const filtradas = listaParaBusca.filter(m => 
         m.titulo.toLowerCase().includes(termoBusca.toLowerCase()) || 
         m.artista.toLowerCase().includes(termoBusca.toLowerCase())
       );
@@ -129,7 +171,7 @@ function App() {
             />
           </div>
           <ListaMusicas 
-            titulo={termoBusca ? "Resultados da Busca" : "Navegar por tudo"} 
+            titulo={termoBusca ? `Resultados para "${termoBusca}"` : "Navegar por tudo"} 
             musicas={filtradas}
             musicaAtual={musicaAtual}
             tocando={tocando}
@@ -149,11 +191,15 @@ function App() {
               <div 
                 key={pl.id} 
                 className="playlist-card" 
-                onClick={() => { setPlaylistAtiva(pl.id); setView('playlist'); }}
               >
-                <div className="playlist-cover">🎵</div>
-                <h3>{pl.nome}</h3>
-                <p>{pl.musicas.length} músicas</p>
+                <div className="playlist-cover" onClick={() => { setPlaylistAtiva(pl.id); setView('playlist'); }}>🎵</div>
+                <div className="card-info">
+                    <h3>{pl.nome}</h3>
+                    <p>{pl.musicas.length} músicas</p>
+                    <button className="remove-btn" onClick={() => removerPlaylist(pl.id)}>
+                        Remover
+                    </button>
+                </div>
               </div>
             ))}
           </div>
@@ -162,7 +208,7 @@ function App() {
     }
     if (view === 'playlist') {
       const playlist = playlists.find(p => p.id === playlistAtiva);
-      if (!playlist) return <div>Playlist não encontrada</div>;
+      if (!playlist) return <div>Playlist não encontrada.</div>;
       return (
         <ListaMusicas 
           titulo={`Playlist: ${playlist.nome}`} 
@@ -171,7 +217,7 @@ function App() {
           tocando={tocando}
           onPlay={tocarMusica}
           playlists={playlists}
-          onAddToPlaylist={adicionarAPlaylist} // Permite adicionar músicas desta lista em outra playlist
+          onAddToPlaylist={adicionarAPlaylist} 
         />
       );
     }
@@ -182,7 +228,7 @@ function App() {
       <div className="main-layout">
         {/* SIDEBAR */}
         <aside className="sidebar">
-          <div className="logo">SpotifyClone</div>
+          <div className="logo">Esportefai</div>
           
           <nav>
             <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>
@@ -236,11 +282,11 @@ function App() {
 
         <div className="player-center">
           <div className="player-controls">
-            <button>⏮️</button>
+            <button onClick={() => pularFaixa(-1)}>⏮️</button>
             <button className="play-pause-btn" onClick={() => musicaAtual && setTocando(!tocando)}>
               {tocando ? '⏸️' : '▶️'}
             </button>
-            <button>⏭️</button>
+            <button onClick={() => pularFaixa(1)}>⏭️</button>
           </div>
           <div className="progress-container">
             <span>{secondsToTime(progresso)}</span>
@@ -269,7 +315,7 @@ function App() {
   );
 }
 
-// SUB-COMPONENTE: Lista de Músicas com Menu Contextual
+// SUB-COMPONENTE: Lista de Músicas
 const ListaMusicas = ({ titulo, musicas, musicaAtual, tocando, onPlay, playlists, onAddToPlaylist }) => {
   const [menuAbertoId, setMenuAbertoId] = useState(null);
 
@@ -302,9 +348,10 @@ const ListaMusicas = ({ titulo, musicas, musicaAtual, tocando, onPlay, playlists
               onMouseLeave={() => setMenuAbertoId(null)}
             >
               <div className="col-index" onClick={() => onPlay(musica)}>
-                {isCurrent && tocando ? '🎵' : index + 1}
+                {/* Nome da música e artista na área de play/pause */}
+                {isCurrent && tocando ? '⏸️' : '▶️'}
               </div>
-              <div className="col-title">
+              <div className="col-title" onClick={() => onPlay(musica)}>
                 <span className="song-title">{musica.titulo}</span>
                 <span className="song-artist">{musica.artista}</span>
               </div>
