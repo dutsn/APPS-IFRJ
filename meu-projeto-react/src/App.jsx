@@ -10,9 +10,12 @@ const MUSICAS_INICIAIS = [
   { id: 5, titulo: "Have a Cigar", album: "Wish You Were Here", artista: "Pink Floyd", duracao: "5:07" },
   { id: 6, titulo: "I Wanna Be Sedated", album: "Road to Ruin", artista: "Ramones", duracao: "2:29" },
   { id: 7, titulo: "Kashmir", album: "Physical Graffiti", artista: "Led Zeppelin", duracao: "8:37" },
-  { id: 8, titulo: "Uncle Remus", album: "Apostrophe", artista: "Frank Zappa", duracao: "2:49" },
-  { id: 9, titulo: "Zoio Eu Te Desafio - Versão Piseiro", album: "Só as Melhores de Belfordroxo 2018", artista: "Ludwig van Beethoven", duracao: "2:05" },
-];
+  { id: 8, titulo: "Preciso Dizer Que Te Amo", album: "Red Hot & Rio", artista: "Cazuza", duracao: "4:41"},
+  { id: 9, titulo: "Uncle Remus", album: "Apostrophe", artista: "Frank Zappa", duracao: "2:49" },
+  { id: 10, titulo: "Zoio Eu Te Desafio - Versão Piseiro", album: "Só as Melhores de Belfordroxo 2018", artista: "Ludwig van Beethoven", duracao: "2:05" },
+  { id: 11, titulo: "Amor e Sexo", album: "Balacobaco", artista: "Rita Lee", duracao: "3:38" },
+  { id: 12, titulo: "Homem-Aranha", album: "Elo", artista: "Jorge Vercillo", duracao: "4:35" },
+ ];
 
 // --- UTILITÁRIOS DE TEMPO ---
 const timeToSeconds = (timeStr) => {
@@ -228,7 +231,7 @@ function App() {
       <div className="main-layout">
         {/* SIDEBAR */}
         <aside className="sidebar">
-          <div className="logo">Esportefai</div>
+          <div className="logo">Esporte5Five</div>
           
           <nav>
             <button className={view === 'home' ? 'active' : ''} onClick={() => setView('home')}>
